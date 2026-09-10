@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Field Executive App</title>
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Loan Recovery Operations</div>
+  <h1>Field Executive App</h1>
+  <p class="subtitle">Enter your name to see the addresses allocated to you today.</p>
+
+  <form action="/dashboard" method="post">
+    <label for="executive_name">Your name</label>
+    <input type="text" id="executive_name" name="executive_name" placeholder="e.g. Ravi Kumar" autocomplete="off" required />
+    <button type="submit">Continue</button>
+  </form>
+
+  <div class="note">
+    Your name must match exactly how it appears in the "Allocated_Executive"
+    column of the customer data — check with your office if nothing shows
+    up on the next screen.
+  </div>
+</div>
+</body>
+</html>
