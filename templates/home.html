@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Field Executive App</title>
+<link rel="stylesheet" href="/static/style.css" />
+<style>
+  .choice-grid { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+  .choice-card {
+    display: block; text-decoration: none; color: inherit;
+    border: 1px solid var(--line-strong); background: var(--paper-raised);
+    padding: 22px 20px;
+  }
+  .choice-card:hover { border-color: var(--ink); }
+  .choice-label { font-family: 'Source Serif 4', Georgia, serif; font-size: 19px; font-weight: 700; margin-bottom: 6px; }
+  .choice-desc { font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Loan Recovery Operations</div>
+  <h1>Field Executive App</h1>
+  <p class="subtitle">Choose how you're using the app.</p>
+
+  <div class="choice-grid">
+    <a class="choice-card" href="/login">
+      <div class="choice-label">Field Executive</div>
+      <div class="choice-desc">Log a customer visit and capture your location.</div>
+    </a>
+    <a class="choice-card" href="/admin">
+      <div class="choice-label">Admin</div>
+      <div class="choice-desc">Upload customer data and download the visit log.</div>
+    </a>
+  </div>
+</div>
+</body>
+</html>
