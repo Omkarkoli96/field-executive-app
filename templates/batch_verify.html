@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Batch Address Verification — Admin</title>
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Field Executive App — Admin only</div>
+  <h1>Batch Address Verification</h1>
+  <p class="subtitle">
+    Upload a Customer Data file and a Visited Data file (e.g. addresses
+    collected offline). Each row is matched by Loan_ID, both addresses
+    are geocoded, and compared against the verification radius
+    (currently <b>{{ current_radius_km }} km</b>). The result downloads
+    as an Excel file as soon as you submit. This is separate from the
+    live GPS-capture flow field executives use — it never touches that
+    log.
+  </p>
+
+  {% if request.query_params.get('error') %}
+    <div class="status show error">{{ request.query_params.get('error') }}</div>
+  {% endif %}
+
+  <form action="/admin/batch-verify/compare" method="post" enctype="multipart/form-data" id="batchForm">
+    <label>Customer Data (.csv or .xlsx)</label>
+    <p class="subtitle" style="margin-top:-8px; font-size:11.5px;">
+      Required: <b>Loan_ID</b>, <b>Customer_Address</b>. Optional: <b>Customer_Name</b>,
+      <b>Customer_Latitude</b> + <b>Customer_Longitude</b> (used instead of geocoding when present).
+    </p>
+    <input type="file" name="customer_file" accept=".csv,.xlsx,.xls" required style="margin-bottom: 22px;" />
+
+    <label>Visited Data (.csv or .xlsx)</label>
+    <p class="subtitle" style="margin-top:-8px; font-size:11.5px;">
+      Required: <b>Loan_ID</b>, <b>Visited_Address</b>. Optional: <b>Executive_Name</b>, <b>Visit_Date</b>,
+      <b>Visited_Latitude</b> + <b>Visited_Longitude</b> (used instead of geocoding when present).
+    </p>
+    <input type="file" name="visited_file" accept=".csv,.xlsx,.xls" required style="margin-bottom: 22px;" />
+
+    <button type="submit" id="submitBtn">Compare &amp; download result</button>
+  </form>
+
+  <div class="note" id="pendingNote" style="display:none;">
+    Processing — geocoding new addresses can take a few seconds each the
+    first time. Already-seen addresses use the cache and are instant.
+    Your download will start automatically.
+  </div>
+
+  <div class="note">
+    Rows are marked <b>VERIFIED</b> (≤{{ current_radius_km }} km),
+    <b>NOT_VERIFIED</b> (&gt;{{ current_radius_km }} km),
+    <b>COULD_NOT_GEOCODE</b> (a location couldn't be resolved), or
+    <b>LOAN_ID_NOT_FOUND</b> (no matching customer record). The result
+    also shows a Location_Source column for each side — GPS means exact
+    coordinates were used; "Address (approx)" means the text was
+    geocoded, which is less reliable for landmark names.
+  </div>
+
+  <a href="/admin" style="display:inline-block; margin-top: 20px; font-size: 12.5px; color: var(--ink-soft);">← Back to Admin</a>
+</div>
+
+<script>
+  document.getElementById('batchForm').addEventListener('submit', function () {
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitBtn').textContent = 'Processing…';
+    document.getElementById('pendingNote').style.display = 'block';
+  });
+</script>
+</body>
+</html>
