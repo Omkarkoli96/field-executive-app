@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin — Field Executive App</title>
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Field Executive App</div>
+  <h1>Admin</h1>
+  <p class="subtitle">Manage customer data, field executives, and the visit log.</p>
+
+  {% if request.query_params.get('ok') == 'cleared' %}
+    <div class="status show success">All customer records cleared — a backup just downloaded automatically.</div>
+  {% elif request.query_params.get('ok') == 'radius_updated' %}
+    <div class="status show success">Verification radius updated.</div>
+  {% elif request.query_params.get('ok') == 'executive_added' %}
+    <div class="status show success">Executive registered.</div>
+  {% elif request.query_params.get('ok') == 'executive_removed' %}
+    <div class="status show success">Executive removed — they can no longer log in.</div>
+  {% elif request.query_params.get('ok') %}
+    <div class="status show success">Customer data uploaded successfully.</div>
+  {% elif request.query_params.get('error') %}
+    <div class="status show error">{{ request.query_params.get('error') }}</div>
+  {% endif %}
+
+  <div class="status-bar" style="margin-bottom: 22px;">
+    <span>{{ customer_count }} customers loaded</span>
+    <span>{{ visit_count }} visits logged</span>
+  </div>
+
+  <!-- Customer data -->
+  <label>Upload Customer_Data (.csv or .xlsx)</label>
+  <p class="subtitle" style="margin-top: -8px;">
+    Must include Loan_ID and Customer_Address columns (Customer_Name optional).
+    Optional: <b>Customer_Latitude</b> + <b>Customer_Longitude</b> — if given, used directly instead
+    of geocoding the address text (more accurate for landmark-style addresses). Re-uploading updates existing Loan IDs.
+  </p>
+  <form action="/admin/upload" method="post" enctype="multipart/form-data" style="margin-bottom: 26px;">
+    <input type="file" name="file" accept=".csv,.xlsx,.xls" required style="margin-bottom: 14px;" />
+    <button type="submit">Upload</button>
+  </form>
+
+  <!-- Verification radius -->
+  <label>Verification Radius</label>
+  <p class="subtitle" style="margin-top: -8px;">Visits within this distance of the customer's address count as Verified. Current: <b>{{ current_radius_km }} km</b>.</p>
+  <form action="/admin/settings/radius" method="post" style="display:flex; gap:8px; margin-bottom: 26px;">
+    <input type="number" name="radius_km" step="0.1" min="0.1" max="50" value="{{ current_radius_km }}" required style="flex:1; margin-bottom:0;" />
+    <button type="submit" style="width:auto; padding:0 16px;">Update</button>
+  </form>
+
+  <!-- Field executives -->
+  <label>Field Executives</label>
+  <p class="subtitle" style="margin-top: -8px;">Only registered executives can log in and record visits — each needs their own name and a 4–8 digit PIN.</p>
+
+  {% if executives %}
+  <div class="card-list" style="margin-bottom: 14px;">
+    {% for ex in executives %}
+    <div class="visit-card" style="display:flex; justify-content:space-between; align-items:center;">
+      <span class="loan-id" style="margin-bottom:0;">{{ ex.name }}</span>
+      <form action="/admin/executives/{{ ex.id }}/remove" method="post" onsubmit="return confirm('Remove {{ ex.name }}? They will no longer be able to log in.');">
+        <button type="submit" style="width:auto; padding:6px 12px; font-size:12px; background:var(--alert); color:#fff;">Remove</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty" style="margin-bottom: 14px;">No executives registered yet.</div>
+  {% endif %}
+
+  <form action="/admin/executives/add" method="post" style="display:flex; gap:8px; margin-bottom: 26px;" autocomplete="off">
+    <input type="text" name="name" placeholder="Executive name" required autocomplete="off" style="flex:2; margin-bottom:0;" />
+    <input type="text" name="pin" placeholder="PIN (4-8 digits)" required inputmode="numeric" pattern="[0-9]*" autocomplete="off" style="flex:1; margin-bottom:0;" />
+    <button type="submit" style="width:auto; padding:0 16px;">Add</button>
+  </form>
+
+  <!-- Visit log -->
+  <label style="margin-top: 6px;">Download Visit Log</label>
+  <a class="btn btn-secondary" href="/admin/export" style="margin-bottom: 10px;">Download Today's Visits</a>
+
+  <form action="/admin/export" method="get" style="display:flex; gap:8px; margin-bottom: 10px;">
+    <input type="date" name="date" required style="flex:1; font-family:inherit; font-size:14px; padding:12px 10px; border:1px solid var(--line-strong); background:#fff; color:var(--ink); margin-bottom:0;" />
+    <button type="submit" class="btn-secondary" style="width:auto; padding:0 16px; background:var(--paper-raised); color:var(--ink); border:1px solid var(--line-strong);">Download</button>
+  </form>
+
+  <a class="btn btn-secondary" href="/admin/export?all=true" style="margin-bottom: 26px;">Download All-Time Visit Log</a>
+
+  <!-- Danger zone -->
+  <form action="/admin/clear-customers" method="post" onsubmit="return confirm('This deletes ALL ' + {{ customer_count }} + ' customer records. A backup Excel file will download automatically first. Visits already logged are kept. Continue?');">
+    <button type="submit" style="background: var(--alert); color: #fff;">Clear all customers ({{ customer_count }})</button>
+  </form>
+
+  <!-- Audit log -->
+  {% if recent_actions %}
+  <label style="margin-top: 26px;">Recent Admin Activity</label>
+  <div class="card-list" style="margin-bottom: 10px;">
+    {% for a in recent_actions %}
+    <div class="visit-card">
+      <div class="loan-id">{{ a.action }} — {{ a.admin_username }}</div>
+      <div class="address">{{ a.detail }} · {{ a.when }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="note">
+    This page is protected by a username/password prompt, with a 15-minute
+    lockout after 5 failed attempts. Field executives log in separately
+    with their own name + PIN — they can't reach this page or record a
+    visit under a name that isn't theirs. "Clear all customers" always
+    downloads a backup automatically before deleting. "Download Today's
+    Visits" only includes visits logged since midnight (India time) —
+    pick a date above for a past day, or use "All-Time" for everything.
+    Every visit in the exported log also carries an <b>Accuracy_Flag</b>
+    (weak GPS signal — worth a manual check) and a <b>Travel_Flag</b>
+    (implausible speed vs. that executive's previous visit — a fraud
+    signal independent of distance).
+  </div>
+</div>
+</body>
+</html>
